@@ -40,6 +40,7 @@ class HierarchicalClusteringDatasetGenerator:
 
         self.sequences_leaves = np.asarray(sequences_leaves)
         self.similarities = similarities
+        self.distances = distances
 
     def save_as_pickle(self, filename):
         directory = os.path.dirname(filename)
@@ -47,7 +48,7 @@ class HierarchicalClusteringDatasetGenerator:
             os.makedirs(directory)
 
         with open(filename, 'wb') as f:
-            pickle.dump((self.sequences_leaves, self.similarities), f)
+            pickle.dump((self.sequences_leaves, self.similarities, self.distances), f)
 
 
 if __name__ == '__main__':

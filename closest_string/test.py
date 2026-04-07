@@ -75,6 +75,24 @@ def embed_strings(loader, model, device):
     embedded_reference = torch.cat(embedded_list, axis=0)
     return embedded_reference
 
+def embed_strings_2(loader, model, device):
+    """ Embeds the sequences of a dataset one batch at the time given an encoder """
+    embedded_list_hyp = []
+    embedded_list_euc = []
+
+    for sequences in loader:
+        sequences = sequences.to(device)
+        embedded = model.encode(sequences, skip_normalization=True)
+
+        embedded_hyp = model.normalize_embeddings(embedded, 'hyperbolic')
+        embedded_euc = model.normalize_embeddings(embedded, 'euclidean')
+        embedded_list_hyp.append(embedded_hyp.cpu().detach())
+        embedded_list_euc.append(embedded_euc.cpu().detach())
+
+    embedded_reference_hyp = torch.cat(embedded_list_hyp, axis=0)
+    embedded_reference_euc = torch.cat(embedded_list_euc, axis=0)
+    return embedded_reference_hyp, embedded_reference_euc
+
 
 def test(loader, model, embedded_reference, distance, device, slots=10):
     """ Given the embedding of the references, embeds and checks the performance for one batch of queries at a time """

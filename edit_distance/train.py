@@ -25,6 +25,7 @@ def general_arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=str, default='../../data/edit_qiita_small.pkl', help='Dataset path')
     parser.add_argument('--no-cuda', action='store_true', default=False, help='Disables CUDA training (GPU)')
+    parser.add_argument('--device', type=int, default=0, help='Cuda device number')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--epochs', type=int, default=2, help='Number of epochs to train')
     parser.add_argument('--lr', type=float, default=0.001, help='Initial learning rate')
@@ -44,14 +45,19 @@ def general_arg_parser():
     parser.add_argument('--extr_data_path', type=str, default='', help='Dataset for further edit distance tests')
     parser.add_argument('--scaling', type=str, default='False', help='Project to hypersphere (for hyperbolic)')
     parser.add_argument('--hyp_optimizer', type=str, default='Adam', help='Optimizer for hyperbolic (Adam or RAdam)')
+    parser.add_argument('--curv', type=float, default=1.0, help='Change curvature for hyperbolic when using hyperbolic_fixed.')
+    parser.add_argument('--reg_lambda', type=float, default=0.01, help='Weight for reg loss away from identity for weighted distances.')
+    parser.add_argument('--same-lr', action='store_true', default=False, help='Keep lr same for different param groups.')
+    parser.add_argument('--covariance_decay', type=float, default=0.0, help='Weight decay')
     return parser
 
 
 def execute_train(model_class, model_args, args):
     # set device
     args.cuda = not args.no_cuda and torch.cuda.is_available()
-    device = 'cuda' if args.cuda else 'cpu'
+    device = f'cuda:{args.device}' if args.cuda else 'cpu'
     print('Using device:', device)
+
 
     # set the random seed
     np.random.seed(args.seed)
@@ -74,14 +80,15 @@ def execute_train(model_class, model_args, args):
 
     # generate model
     embedding_model = model_class(**vars(model_args))
-    model = PairEmbeddingDistance(embedding_model=embedding_model, distance=args.distance, scaling=args.scaling)
+    model = PairEmbeddingDistance(embedding_model=embedding_model, distance=args.distance, scaling=args.scaling, fixed_curvature=args.curv, reg_lambda=args.reg_lambda)
     model.to(device)
 
+    param_groups = model.get_param_groups(base_lr=args.lr, all_same=args.same_lr, covariance_decay=args.covariance_decay)
     # select optimizer
     if args.distance == 'hyperbolic' and args.hyp_optimizer == 'RAdam':
-        optimizer = RAdam(model.parameters(), lr=args.lr)
+        optimizer = RAdam(param_groups, lr=args.lr)
     else:
-        optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        optimizer = optim.Adam(param_groups, lr=args.lr, weight_decay=args.weight_decay)
 
     # select loss
     loss = None
@@ -157,7 +164,8 @@ def execute_train(model_class, model_args, args):
     # Hierarchical clustering
     if args.hierarchical_data_path != '':
         print("Hierarchical clustering")
-        hierarchical_clustering_testing(encoder_model=model, data_path=args.hierarchical_data_path,
+        with torch.no_grad():
+            hierarchical_clustering_testing(encoder_model=model, data_path=args.hierarchical_data_path,
                                         batch_size=args.batch_size, device=device, distance=args.distance)
 
     # MSA tree construction on test set
@@ -214,6 +222,9 @@ def train(model, loader, optimizer, loss, device):
 
         # loss and backpropagation
         loss_train = loss(output, labels)
+        if model.reg_lambda > 0:
+            loss_train = loss_train + model.reg_lambda * model.regularization_loss()
+
         loss_train.backward()
         optimizer.step()
 

@@ -21,6 +21,7 @@ class HierarchicalClusteringGenomicDatasetGenerator:
 
         self.sequences_leaves = np.asarray(sequences)
         self.similarities = similarities
+        self.true_distances = distances
 
     def save_as_pickle(self, filename):
         directory = os.path.dirname(filename)
@@ -28,7 +29,7 @@ class HierarchicalClusteringGenomicDatasetGenerator:
             os.makedirs(directory)
 
         with open(filename, 'wb') as f:
-            pickle.dump((self.sequences_leaves, self.similarities), f)
+            pickle.dump((self.sequences_leaves, self.similarities, self.true_distances), f)
 
 
 if __name__ == '__main__':

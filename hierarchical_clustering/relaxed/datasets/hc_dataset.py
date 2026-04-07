@@ -14,8 +14,13 @@ from hierarchical_clustering.relaxed.datasets.triples import generate_all_triple
 
 def load_hc_data(dataset):
     with open(dataset, 'rb') as f:
-        x, similarities = pickle.load(f)
-    return x, similarities
+        loaded = pickle.load(f)
+        if len(loaded) == 3:
+            x, similarities, true_distances = loaded
+        else:
+            true_distances = None
+            x, similarities = loaded
+    return x, similarities, true_distances
 
 
 class HCTripletDataset(data.Dataset):

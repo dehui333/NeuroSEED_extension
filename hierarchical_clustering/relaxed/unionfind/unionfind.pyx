@@ -10,7 +10,8 @@ from libc.stdlib cimport malloc, free
 import numpy as np
 cimport numpy as np
 
-ctypedef np.int_t DTYPE_t
+#ctypedef np.int_t DTYPE_t
+ctypedef np.int64_t DTYPE_t
 cdef bint boolean_variable = True
 
 cdef class UnionFind:

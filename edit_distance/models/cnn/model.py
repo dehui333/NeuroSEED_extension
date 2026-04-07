@@ -14,6 +14,7 @@ class CNN(nn.Module):
         self.layers = layers
         self.kernel_size = kernel_size
         self.embedding = nn.Linear(alphabet_size, channels)
+        self.embedding_size = embedding_size
 
         # construct convolutional layers
         self.conv = torch.nn.Sequential()
@@ -35,7 +36,7 @@ class CNN(nn.Module):
                 len_sequence //= 2
 
         # construct readout
-        print(len_sequence)
+        #print(len_sequence)
         flat_size = channels * len_sequence
         self.readout = MLP(in_size=flat_size, hidden_size=embedding_size, out_size=embedding_size,
                            layers=readout_layers, mid_activation='relu', dropout=dropout, device=device)

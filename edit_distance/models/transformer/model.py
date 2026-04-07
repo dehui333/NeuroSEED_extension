@@ -13,6 +13,7 @@ class Transformer(nn.Module):
 
         self.segment_size = segment_size
         self.padding = (- len_sequence) % segment_size
+        self.embedding_size = embedding_size
         len_sequence += self.padding
         print("padding", self.padding)
 
